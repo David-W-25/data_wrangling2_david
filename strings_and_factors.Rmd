@@ -1,0 +1,166 @@
+---
+title: "strings_and_factors"
+author: "David"
+date: "2024-10-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(stringr)
+library(rvest)
+library(forcats)
+library(httr)
+library(p8105.datasets)
+
+```
+
+
+```{r}
+string_vec = c("my", "name", "is", "jeff")
+
+str_detect(string_vec, "jeff")
+```
+
+```{r}
+string_vec = c(
+  "The CI is [2, 5]",
+  "-]",
+  ":-[",
+  "msty {"
+)
+
+str_detect(string_vec, "\\[")
+
+```
+
+```{r}
+string_vec = c(
+  "Time for a Pumpkin Spice Latte!",
+  "went to the #pumpkinpatch last weekend",
+  "Pumpkin Pie is obviously the best pie",
+  "SMASHING PUMPKINS -- LIVE IN CONCERT!!"
+  )
+
+str_detect(string_vec,"[Pp]umpkin")
+
+
+```
+
+```{r}
+string_vec = c(
+  'Its 7:11 in the evening',
+  'want to go to 7-11?',
+  'my flight is AA711',
+  'NetBios: scanning ip 203.167.114.66'
+  )
+
+str_detect(string_vec, "7.11")
+```
+
+
+
+```{r}
+vec_sex = factor(c("male", "male", "female", "female"))
+vec_sex
+as.numeric(vec_sex)
+vec_sex = fct_relevel(vec_sex, "male")
+vec_sex
+```
+
+```{r}
+nsduh_url = "http://samhda.s3-us-gov-west-1.amazonaws.com/s3fs-public/field-uploads/2k15StateFiles/NSDUHsaeShortTermCHG2015.htm"
+
+table_marj = 
+  read_html(nsduh_url) |> 
+  html_table() |> 
+  first() |>
+  slice(-1)
+
+marj_use_df =
+  nsduh_url |>
+  read_html(nsduh_url) |> 
+  html_table() |> 
+  first() |>
+  slice(-1) |>
+  select(-contains("P value")) |>
+  pivot_longer(
+    cols = -State,
+    names_to = "age_year",
+    values_to = "percent"
+  )|>
+  separate(age_year, into = c("age", "year"), sep = c("\\(")) |>
+  mutate(
+    year = str_replace(year, "\\)", ""),
+    percent = str_remove(percent, "[a-c]$"),
+    percent = as.numeric(percent)
+  )
+  
+  
+marj_use_df |>
+  filter(age == "12-17") |>
+  mutate(
+    State = fct_reorder(State, percent)
+  ) |>
+  ggplot(aes(x = State, y = percent, color = year)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  
+
+
+```
+
+
+```{r}
+data("rest_inspec")
+
+rest_inspec |>
+  count(boro, grade) |>
+  pivot_wider(
+    names_from = grade,
+    values_from = n
+  )
+
+
+rest_inspec =
+  rest_inspec |>
+  filter(
+    str_detect(grade, "[A-C]"),
+    !(boro == "Missing")
+  )
+
+
+rest_inspec |>
+  mutate(dba = str_to_sentence(dba)) |>
+  filter(str_detect(dba, "Pizza")) |>
+  mutate(boro = fct_infreq(boro)) |>
+  ggplot(aes(x = boro)) +
+  geom_bar()
+
+rest_inspec |>
+  mutate(dba = str_to_sentence(dba)) |>
+  filter(str_detect(dba, "Pizza")) |>
+  mutate(boro = fct_relevel(boro, "STATEN ISLAND")) |>
+  ggplot(aes(x = boro)) +
+  geom_bar()
+
+rest_inspec |>
+  mutate(dba = str_to_sentence(dba)) |>
+  filter(str_detect(dba, "Pizza")) |>
+  mutate(
+    boro = fct_infreq(boro),
+    boro = str_replace(boro, "MANHATTAN", "THE CITY")) |>
+  ggplot(aes(x = boro)) +
+  geom_bar()
+
+rest_inspec |>
+  mutate(dba = str_to_sentence(dba)) |>
+  filter(str_detect(dba, "Pizza")) |>
+  mutate(
+    boro = fct_infreq(boro),
+    boro = fct_recode(boro, "THE CITY" = "MANHATTAN")) |>
+  ggplot(aes(x = boro)) +
+  geom_bar()
+```
+
+
